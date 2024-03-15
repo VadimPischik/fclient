@@ -43,7 +43,7 @@ public class PinpadActivity extends AppCompatActivity {
             setResult(RESULT_OK, it);
             finish();
         });
-        /*TextView ta = findViewById(R.id.txtAmount);
+        TextView ta = findViewById(R.id.txtAmount);
         String amt = String.valueOf(getIntent().getStringExtra("amount"));
         Long f = Long.valueOf(amt);
         DecimalFormat df = new DecimalFormat("#,###,###,##0.00");
@@ -55,7 +55,7 @@ public class PinpadActivity extends AppCompatActivity {
         if (pts == 2)
             tp.setText("Осталось две попытки");
         else if (pts == 1)
-            tp.setText("Осталась одна попытка");*/
+            tp.setText("Осталась одна попытка");
 
 
 

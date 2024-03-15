@@ -21,12 +21,12 @@ mbedtls_ctr_drbg_context ctr_drbg;
 char *personalization = "fclient-sample-app";
 
 JavaVM* gJvm = nullptr;
-/*
 JNIEXPORT jint JNICALL JNI_OnLoad (JavaVM* pjvm, void* reserved)
 {
     gJvm = pjvm;
     return JNI_VERSION_1_6;
 }
+
 
 
 JNIEnv* getEnv (bool& detach)
@@ -44,7 +44,17 @@ JNIEnv* getEnv (bool& detach)
         detach = true;
     }
     return env;
-}*/
+}
+
+
+void releaseEnv (bool detach, JNIEnv* env)
+{
+    if (detach && (gJvm != nullptr))
+    {
+        gJvm->DetachCurrentThread ();
+    }
+}
+
 
 
 
@@ -154,12 +164,19 @@ Java_com_example_fclient_MainActivity_decrypt(JNIEnv *env, jclass clazz, jbyteAr
                                               jbyteArray data) {
     // TODO: implement decrypt()
 }*/
-/*
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_example_fclient_MainActivity_transaction(JNIEnv *env, jobject thiz, jbyteArray trd) {
-    jclass cls = env->GetObjectClass(thiz);
-    jmethodID id = env->GetMethodID(cls, "enterPin", "(ILjava/lang/String;)Ljava/lang/String;");
+Java_com_example_fclient_MainActivity_transaction(JNIEnv *xenv, jobject xthiz, jbyteArray xtrd) {
+    jobject thiz = xenv->NewGlobalRef(xthiz);
+    jbyteArray trd = (jbyteArray) xenv->NewGlobalRef(xtrd);
+    std::thread t([thiz, trd] {
+        bool detach = false;
+        JNIEnv *env = getEnv(detach);
+        jclass cls = env->GetObjectClass(thiz);
+        jmethodID id = env->GetMethodID(
+                cls, "enterPin", "(ILjava/lang/String;)Ljava/lang/String;");
+
+
     //TRD 9F0206000000000100 = amount = 1р
     uint8_t* p = (uint8_t*)env->GetByteArrayElements (trd, 0);
     jsize sz = env->GetArrayLength (trd);
@@ -184,6 +201,19 @@ Java_com_example_fclient_MainActivity_transaction(JNIEnv *env, jobject thiz, jby
         ptc--;
     }
 
-    env->ReleaseByteArrayElements(trd, (jbyte *)p, 0);
-    return (ptc > 0);
-}*/
+    /*env->ReleaseByteArrayElements(trd, (jbyte *)p, 0);
+    return (ptc > 0);*/
+
+        id = env->GetMethodID(cls, "transactionResult", "(Z)V");
+        env->CallVoidMethod(thiz, id, ptc > 0);
+
+        env->ReleaseByteArrayElements(trd, (jbyte *)p, 0);
+        env->DeleteGlobalRef(thiz);
+        env->DeleteGlobalRef(trd);
+        releaseEnv(detach, env);
+        return true;
+    });
+    t.detach();
+    return true;
+}
+
